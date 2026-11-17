@@ -2,6 +2,7 @@
 FastAPI สำหรับโปรเจคคัดแยก SMS
 
 Endpoint:
+  GET  /health   เช็กว่า API ทำงานอยู่
   POST /predict  รับข้อความ SMS -> คืนผลว่าเป็นข้อความปกติหรือมิจฉาชีพ + หมวดย่อย + คำแนะนำ
   POST /report   ผู้ใช้ส่งข้อความพร้อมบอกหมวดที่ถูกต้อง -> เก็บลง Firebase รอทีมคัดกรอง
 
@@ -9,12 +10,14 @@ Endpoint:
   uvicorn api.main:app --reload
 แล้วเปิด http://127.0.0.1:8000/docs เพื่อลองยิง API ได้เลย
 """
+import os
 import sys
 from pathlib import Path
 
 import joblib
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field, field_validator
 
 from api.firebase_db import save_report
@@ -33,13 +36,22 @@ VECTORIZER = _bundle["vectorizer"]
 MODELS = _bundle["models"]
 
 # ---------------------------------------------------------------------------
-# 2) สร้างแอป + อนุญาตให้หน้าเว็บ React (localhost:3000) เรียก API ได้ (CORS)
+# 2) สร้างแอป + กำหนดว่าหน้าเว็บที่ไหนเรียก API ได้บ้าง (CORS)
+#    - ตอนพัฒนาในเครื่อง: React (Vite) ที่ localhost:5173 และ localhost:3000
+#    - บน Render: ตั้งตัวแปร ALLOWED_ORIGINS เป็น URL ของเว็บบน Vercel
+#      เช่น ALLOWED_ORIGINS=https://sms-scam-detector.vercel.app (หลายอันคั่นด้วย ,)
 # ---------------------------------------------------------------------------
 app = FastAPI(title="SMS Scam Detector API", version="1.0")
 
+LOCAL_ORIGINS = [
+    "http://localhost:5173", "http://127.0.0.1:5173",
+    "http://localhost:3000", "http://127.0.0.1:3000",
+]
+EXTRA_ORIGINS = [o.strip().rstrip("/") for o in os.getenv("ALLOWED_ORIGINS", "").split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_origins=LOCAL_ORIGINS + EXTRA_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -100,6 +112,18 @@ def run_model(text: str) -> PredictResponse:
         risk_level=grp["risk_level"],   # คิดจาก group อย่างเดียว
         advice=sub["advice"],
     )
+
+
+@app.get("/", include_in_schema=False)
+def root():
+    """เปิดหน้าแรกแล้วพาไปหน้า /docs"""
+    return RedirectResponse("/docs")
+
+
+@app.get("/health")
+def health():
+    """ให้หน้าเว็บเช็กว่า API พร้อมใช้งาน (และใช้ปลุกเซิร์ฟเวอร์ฟรีที่หลับอยู่)"""
+    return {"status": "ok"}
 
 
 @app.post("/predict", response_model=PredictResponse)

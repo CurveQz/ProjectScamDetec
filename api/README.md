@@ -4,6 +4,7 @@ API สำหรับหน้าเว็บ React ใช้ตรวจข้
 
 | Endpoint | หน้าที่ |
 |---|---|
+| `GET /health` | เช็กว่า API ทำงานอยู่ (หน้าเว็บใช้ปลุกเซิร์ฟเวอร์บน Render) |
 | `POST /predict` | ตรวจข้อความ 1 ข้อความ → ข้อความปกติหรือมิจฉาชีพ + หมวดย่อย + คำแนะนำ |
 | `POST /report` | ผู้ใช้ส่งข้อความพร้อมบอก group / sub_group → เก็บลง Firebase (collection `reports`) รอทีมคัดกรอง |
 
@@ -104,7 +105,11 @@ const res = await fetch("http://127.0.0.1:8000/report", {
 
 ## CORS
 
-อนุญาตให้หน้าเว็บที่ `http://localhost:3000` เรียก API ได้ ถ้าเว็บรันที่ port อื่น ให้แก้ `allow_origins` ใน `main.py`
+อนุญาตให้หน้าเว็บที่ `localhost:5173` (Vite) และ `localhost:3000` เรียก API ได้อยู่แล้ว ถ้าเว็บอยู่ที่อื่น (เช่น Vercel) ให้ตั้งตัวแปร `ALLOWED_ORIGINS` เป็น URL ของเว็บ (หลายอันคั่นด้วย `,`)
+
+## ขึ้นเซิร์ฟเวอร์จริง
+
+ดู `DEPLOY.md` ที่โฟลเดอร์หลักของ repo (API บน Render ฟรี) — บน Render ใช้ตัวแปร `FIREBASE_KEY_JSON` แทนไฟล์ key
 
 ## ไฟล์ในโฟลเดอร์นี้
 
