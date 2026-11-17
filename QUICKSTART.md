@@ -32,30 +32,30 @@
 
 ## 💻 รันในเครื่อง
 
-ต้องมี **Python 3.11+** และ **Node.js 20.19+**
+**ทีมหน้าเว็บ (UX/UI)** — ต้องมีแค่ **Node.js 20.19+** ไม่ต้องรัน Python ไม่ต้องมี key
+
+1. สร้างไฟล์ `web/.env.local` (ใน VS Code: คลิกขวาโฟลเดอร์ `web` → New File) ใส่บรรทัดนี้ แล้ว Save
+   ```
+   VITE_API_URL=https://projectscamdetec.onrender.com
+   ```
+2. รัน
+   ```bash
+   cd web
+   npm install
+   npm run dev        # -> http://localhost:5173
+   ```
+
+> ⚠️ ปุ่ม "ส่งข้อความ" ในหน้า `/report` จะบันทึกลง Firebase ตัวจริง — ทดสอบได้ แต่ส่งข้อความทดสอบเท่าที่จำเป็น
+
+**ทีมที่แก้ API / โมเดล** — ต้องมี **Python 3.11+**
 
 ```bash
-# ติดตั้ง (ครั้งแรกครั้งเดียว)
 py -3.11 -m pip install -r api/requirements.txt
-cd web && npm install && cd ..
-
-# Terminal 1: API  -> http://127.0.0.1:8000/docs
-py -3.11 -m uvicorn api.main:app --reload
-
-# Terminal 2: หน้าเว็บ -> http://localhost:5173
-cd web
-npm run dev
+py -3.11 -m uvicorn api.main:app --reload     # -> http://127.0.0.1:8000/docs
 ```
 
-`/report` ในเครื่องต้องมีไฟล์ `api/serviceAccountKey.json` — ขอจากต้นกล้าทางแชทส่วนตัว (**ห้ามขึ้น GitHub**)
-
-## เช็กในเครื่องก่อน push
-
-```bash
-cd web
-npm run dev      # เปิด http://localhost:5173 ดูหน้าตา
-npm run build    # ถ้าผ่านไม่มี error ค่อย push
-```
+`/predict` ใช้ได้เลยโดยไม่ต้องมี key ส่วน `/report` ในเครื่องจะตอบ 503 (ไม่มี key Firebase) — ปกติ ไม่ต้องขอ key
+ถ้าจำเป็นต้องทดสอบ `/report` ให้ทดสอบกับ API บน Render แทน
 
 ## ⬆️ อัปโหลดงาน — push แล้วเว็บอัปเดตเอง
 

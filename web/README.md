@@ -34,20 +34,21 @@ web/
 
 ต้องมี **Node.js 20.19 ขึ้นไป** (เช็กด้วย `node -v`)
 
-```bash
-# 1) เปิด API ไว้ก่อน (Terminal แรก ที่โฟลเดอร์ ProjectScamDetec)
-py -3.11 -m uvicorn api.main:app --reload
+1. สร้างไฟล์ `web/.env.local` ใส่บรรทัดนี้ (ใช้ API ตัวจริงบน Render ไม่ต้องรัน Python)
+   ```
+   VITE_API_URL=https://projectscamdetec.onrender.com
+   ```
+   ถ้าจะใช้ API ที่รันในเครื่องตัวเอง ให้ใส่ `http://127.0.0.1:8000` แทน
+2. รัน
+   ```bash
+   cd web
+   npm install
+   npm run dev
+   ```
+3. เปิด http://localhost:5173
 
-# 2) เปิดเว็บ (Terminal ที่สอง)
-cd web
-npm install
-npm run dev
-```
+## ขึ้นเว็บจริง
 
-เปิด http://localhost:5173
+push การแก้ใน `web/` เข้า `main` → GitHub Actions deploy ขึ้น https://message-scam-detector.vercel.app ให้เอง (ประมาณ 1 นาที)
 
-ค่าเริ่มต้นเว็บจะเรียก API ที่ `http://127.0.0.1:8000` ถ้าจะเปลี่ยน ให้คัดลอก `.env.example` เป็น `.env.local` แล้วแก้ `VITE_API_URL`
-
-## ขึ้น Vercel
-
-ดูขั้นตอนเต็มใน `DEPLOY.md` ที่โฟลเดอร์หลักของ repo
+ก่อน push ควรรัน `npm run build` ให้ผ่านก่อน ถ้าเวอร์ชันใหม่ขึ้นไปแล้วพัง เจ้าของบัญชี Vercel กด **Instant Rollback** ย้อนกลับได้

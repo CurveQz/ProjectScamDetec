@@ -1,0 +1,16 @@
+# Python
+__pycache__/
+*.pyc
+
+# Secrets (Firebase key / local env) - never commit
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+.env
+.env.local
+*.local
+
+# Vercel CLI
+.vercel
+
+# Raw SMS backups (personal data)
+*.xml
