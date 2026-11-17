@@ -2,16 +2,24 @@
 
 ## 🔗 ลิงก์
 
+**เปิดได้ทุกคน**
+
 | อะไร | ลิงก์ |
 |---|---|
 | หน้าเว็บ (ส่งให้คนอื่นใช้) | https://message-scam-detector.vercel.app |
 | API + หน้าลองยิง API | https://projectscamdetec.onrender.com/docs |
-| GitHub | https://github.com/CurveQz/ProjectScamDetec |
-| Firebase (ดูข้อความที่ผู้ใช้ส่งมา) | https://console.firebase.google.com → โปรเจค **NLP-ML** → Firestore → `reports` |
+| GitHub (โค้ด + แท็บ Actions ดูสถานะ deploy) | https://github.com/CurveQz/ProjectScamDetec |
+
+**เฉพาะต้นกล้า** (บัญชีส่วนตัว — คนอื่นกดเข้าไปจะเจอหน้า login หรือหน้าบัญชีของตัวเองที่ว่างเปล่า)
+
+| อะไร | ลิงก์ |
+|---|---|
+| Firebase (ข้อความที่ผู้ใช้ส่งมา) | https://console.firebase.google.com → โปรเจค **NLP-ML** → Firestore → `reports` |
 | Render (เซิร์ฟเวอร์ API) | https://dashboard.render.com → `ProjectScamDetec` |
 | Vercel (เซิร์ฟเวอร์หน้าเว็บ) | https://vercel.com → `message-scam-detector` |
 
-> บัญชี Render / Vercel / Firebase เป็นของ **ต้นกล้า** — ถ้าต้อง deploy หรือแก้ค่าบนเว็บพวกนี้ ให้บอกต้นกล้า
+> ไม่ต้องเข้า 3 เว็บนี้เพื่อ deploy — push ขึ้น GitHub แล้วระบบ deploy ให้เอง
+> ถ้าอยากดูข้อมูลใน Firebase ให้ต้นกล้าเพิ่มอีเมลให้ (Firebase → Project settings → Users and permissions)
 
 ## 📁 ใครแก้ตรงไหน
 
@@ -40,6 +48,14 @@ npm run dev
 ```
 
 `/report` ในเครื่องต้องมีไฟล์ `api/serviceAccountKey.json` — ขอจากต้นกล้าทางแชทส่วนตัว (**ห้ามขึ้น GitHub**)
+
+## เช็กในเครื่องก่อน push
+
+```bash
+cd web
+npm run dev      # เปิด http://localhost:5173 ดูหน้าตา
+npm run build    # ถ้าผ่านไม่มี error ค่อย push
+```
 
 ## ⬆️ อัปโหลดงาน — push แล้วเว็บอัปเดตเอง
 
