@@ -1,5 +1,10 @@
 # ขึ้นเว็บจริง (ฟรี): API บน Render + หน้าเว็บบน Vercel
 
+> ✅ **ตั้งค่าเสร็จแล้ว (17 พ.ย. 2026)** — ตอนนี้ deploy อัตโนมัติด้วย GitHub Actions ทุกครั้งที่ push เข้า `main`
+> (`.github/workflows/deploy-web.yml` และ `deploy-api.yml`) ไม่ต้องรัน `npx vercel --prod` หรือกด Manual Deploy เองแล้ว
+> ⚠️ ห้ามรัน `npx vercel --prod` ในโฟลเดอร์ `web` อีก เพราะตั้ง Root Directory = `web` บน Vercel แล้ว จะ error
+> ขั้นตอนด้านล่างเก็บไว้เผื่อต้องตั้งใหม่ตั้งแต่ต้น
+
 ```
 ผู้ใช้ ──> หน้าเว็บ (Vercel) ──> API + โมเดล (Render) ──> Firebase (Firestore)
 ```

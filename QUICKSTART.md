@@ -41,9 +41,7 @@ npm run dev
 
 `/report` ในเครื่องต้องมีไฟล์ `api/serviceAccountKey.json` — ขอจากต้นกล้าทางแชทส่วนตัว (**ห้ามขึ้น GitHub**)
 
-## ⬆️ อัปโหลดงาน
-
-**1. ขึ้น GitHub (ทุกคน)**
+## ⬆️ อัปโหลดงาน — push แล้วเว็บอัปเดตเอง
 
 ```bash
 git pull
@@ -52,17 +50,16 @@ git commit -m "อธิบายว่าแก้อะไร"
 git push
 ```
 
-**2. อัปเดตหน้าเว็บจริง (ต้นกล้า)** — หลังมีคนแก้ `web/`
+push เข้า `main` แล้ว **GitHub Actions จะ deploy ให้อัตโนมัติ** (ดูสถานะที่แท็บ **Actions** บน GitHub)
 
-```bash
-git pull
-cd web
-npx vercel --prod
-```
+| แก้อะไร | อะไรอัปเดต | รอประมาณ |
+|---|---|---|
+| `web/` | หน้าเว็บบน Vercel | 1 นาที |
+| `api/`, `sms_model.joblib`, `sms_pipeline.py` | API บน Render | 3–5 นาที |
+| อย่างอื่น (เช่น `row_data/`, `main.ipynb`) | ไม่ deploy | – |
 
-**3. อัปเดต API / โมเดลจริง (ต้นกล้า)** — หลังมีคนแก้ `api/` หรือ `sms_model.joblib`
-
-Render → `ProjectScamDetec` → **Manual Deploy → Deploy latest commit** (รอ ~2 นาที)
+ถ้าขึ้นกากบาทแดง ❌ ในแท็บ Actions → กดเข้าไปดู error แล้วบอกต้นกล้า
+ไฟล์ workflow อยู่ที่ `.github/workflows/` (secret 4 ตัวตั้งไว้ใน GitHub → Settings → Secrets and variables → Actions)
 
 ## ⚠️ ต้องรู้
 
