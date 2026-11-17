@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+firebase-admin
+joblib
+numpy
+scipy
+pythainlp
+# must match the version used to save sms_model.joblib (needs Python 3.11+)
+scikit-learn==1.9.1

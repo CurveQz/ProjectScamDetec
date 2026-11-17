@@ -1,0 +1,4 @@
+# ไฟล์ key ของ Firebase ห้ามขึ้น GitHub เด็ดขาด
+serviceAccountKey.json
+*-firebase-adminsdk-*.json
+__pycache__/
