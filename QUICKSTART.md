@@ -81,4 +81,4 @@ push เข้า `main` แล้ว **GitHub Actions จะ deploy ให้�
 
 - เซิร์ฟเวอร์ฟรี **หลับถ้าไม่มีคนใช้ 15 นาที** → เปิดเว็บทิ้งไว้ 2–3 นาทีก่อนพรีเซนต์ (รอแถบสีเหลืองหาย)
 - ถ้าเปลี่ยนชื่อหมวด (sub_group) ในโมเดล ต้องแก้ 2 ที่: `api/labels.py` และ `web/src/labels.js`
-- รายละเอียดเพิ่ม: `api/README.md`, `web/README.md`, `DEPLOY.md`
+- รายละเอียดเพิ่ม: `api/README.md`, `web/README.md`

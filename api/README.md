@@ -109,7 +109,17 @@ const res = await fetch("http://127.0.0.1:8000/report", {
 
 ## ขึ้นเซิร์ฟเวอร์จริง
 
-ดู `DEPLOY.md` ที่โฟลเดอร์หลักของ repo (API บน Render ฟรี) — บน Render ใช้ตัวแปร `FIREBASE_KEY_JSON` แทนไฟล์ key
+API อยู่บน Render (แผนฟรี) ที่ https://projectscamdetec.onrender.com — push การแก้ใน `api/`, `sms_model.joblib` หรือ `sms_pipeline.py` เข้า `main` แล้ว GitHub Actions สั่ง deploy ให้เอง
+
+ค่าที่ตั้งไว้บน Render (เผื่อต้องสร้างใหม่):
+
+| ช่อง | ค่า |
+|---|---|
+| Build Command | `pip install -r api/requirements.txt` |
+| Start Command | `uvicorn api.main:app --host 0.0.0.0 --port $PORT` |
+| `PYTHON_VERSION` | `3.11.11` |
+| `FIREBASE_KEY_JSON` | เนื้อหาทั้งไฟล์ `serviceAccountKey.json` |
+| `ALLOWED_ORIGINS` | `https://message-scam-detector.vercel.app` |
 
 ## ไฟล์ในโฟลเดอร์นี้
 
