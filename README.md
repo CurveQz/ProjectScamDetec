@@ -2,218 +2,248 @@
 
 **NLP 2026 Mini Project**
 
-- 🌐 เว็บใช้งานจริง: [message-scam-detector.vercel.app](https://message-scam-detector.vercel.app)
-- 💻 GitHub: [github.com/CurveQz/ProjectScamDetec](https://github.com/CurveQz/ProjectScamDetec)
+ScamDetec ช่วยอ่าน SMS ภาษาไทย โดยแยกข้อความปกติออกจากข้อความที่โมเดลจัดว่าเป็นมิจฉาชีพ แล้วแสดงหมวดย่อย ค่าความมั่นใจ และคำแนะนำ หน้าเว็บสำหรับตรวจและส่งตัวอย่างอยู่ใน React ส่วนหน้าแนะนำด้วย Astro เป็นแผนงานของทีมใน [idea.md](idea.md) มี [แบบร่าง HTML ใน Draft PR #6](https://github.com/CurveQz/ProjectScamDetec/pull/6) ให้ดูแยกต่างหาก
+
+| อยากทำอะไร | เริ่มที่ |
+| --- | --- |
+| ลองตรวจ SMS หรือส่งตัวอย่าง | [วิธีใช้](#วิธีใช้) |
+| รันหรือแก้หน้าเว็บ | [คู่มือ React](web/README.md) |
+| เรียกหรือรัน API | [คู่มือ FastAPI](api/README.md) |
+| เทรนโมเดลและอ่านผลประเมิน | [Notebook](main.ipynb) และหัวข้อ Data + Results ด้านล่าง |
+| เพิ่มข้อมูลให้ทีม | [วิธีส่งข้อมูล](row_data/readme.md) |
+
+- [เว็บตรวจ SMS](https://message-scam-detector.vercel.app)
+- [GitHub ของโปรเจกต์](https://github.com/CurveQz/ProjectScamDetec)
 
 ---
 
-## 1. Idea
+## 1. ไอเดียและภาพรวมระบบ
 
-### Pain point
-SMS หลอกลวงมีจำนวนมาก เช่น ชวนเล่นพนัน ส่งลิงก์ปลอม หรือข่มขู่ และแยกออกจาก SMS จริงได้ยาก
+SMS ชวนเล่นพนัน แนบลิงก์ปลอม หรือข่มขู่ อาจเขียนคล้ายข้อความจากผู้ให้บริการจริง โปรเจกต์นี้ทำเครื่องมือช่วยคัดแยกข้อความสำหรับผู้ใช้มือถือทั่วไป โดยเฉพาะคนที่ไม่คุ้นเคยกับเทคโนโลยี
 
-### User (กลุ่มเป้าหมาย)
-ผู้ใช้มือถือทั่วไป โดยเฉพาะผู้สูงอายุและคนที่ไม่คุ้นเคยกับเทคโนโลยี
+โมเดลใช้ทั้งคำและรูปแบบตัวอักษรประกอบการคัดแยก จึงใช้คำรอบข้างและตัวสะกดเป็นข้อมูลเพิ่มจากการจับคำสำคัญทีละคำ ปัจจุบันใช้งานผ่านเว็บ ส่วนเป้าหมายระยะยาวคือทำเป็นปลั๊กอินสำหรับแอป SMS
 
-### Idea
-ระบบตรวจข้อความ SMS ว่าเป็นข้อความหลอกลวงหรือไม่ พร้อมระบุประเภท (พนัน / ลิงก์ปลอม / ข่มขู่) และเหตุผล เพื่อให้ผู้ใช้ตัดสินใจได้ง่ายขึ้น
+| กลุ่มหลัก (`group`) | หมวดย่อย (`sub_group`) | ตัวอย่าง |
+| --- | --- | --- |
+| `positive` ข้อความปกติ | `promotion` | โปรโมชันสินค้า สิทธิพิเศษ คะแนนสะสม |
+| `positive` | `carrier_vas` | บริการเสริมของค่ายมือถือ เช่น ดูดวงหรือริงโทน |
+| `positive` | `otp` | รหัส OTP หรือรหัสยืนยันตัวตน |
+| `positive` | `service_notice` | แจ้งสถานะพัสดุ ระบบโทรศัพท์ หรือประกาศบริการ |
+| `positive` | `payment_alert` | แจ้งยอดชำระ เงินเข้า–ออก หรือธุรกรรมการเงิน |
+| `negative` ข้อความมิจฉาชีพ | `invite` | ชักชวนเล่นพนัน รับรางวัลปลอม กู้เงิน หรือสมัครงานออนไลน์ |
+| `negative` | `phishing_link` | แนบลิงก์หลอกโดยแอบอ้างธนาคาร ขนส่ง หรือหน่วยงานรัฐ |
+| `negative` | `threat` | ข่มขู่หรือแจ้งเตือนเท็จ เช่น พัสดุถูกอายัด จะตัดไฟ หรือมีหมายเรียก |
 
-- **เป้าหมายระยะยาว:** ทำเป็นปลั๊กอินที่ใช้ในแอป SMS ได้โดยตรง
-- **ตอนนี้:** เวลามีจำกัด จึงนำเสนอ concept ในรูปแบบเว็บไซต์
+### จากข้อความไปถึงผลตรวจ
 
-### Solution: ดีกว่าเดิมยังไง
-- **สิ่งที่ดีกว่าเดิม:** ผู้ใช้มีตัวช่วยวิเคราะห์ข้อความ ไม่ต้องเดาเองและเสี่ยงถูกมิจฉาชีพหลอก
-- **ทำไมต้องใช้ NLP:** การวิเคราะห์ภาษาทำด้วย if-else ไม่ได้ เพราะคำเดียวกันมีความหมายต่างกันได้ในแต่ละประโยค
-- **บอกได้ว่าเป็น SMS หลอกลวงหรือไม่** และจำแนกได้ละเอียดถึง 8 กลุ่มย่อย
-
-| group | sub_group | ความหมาย |
-| :--- | :--- | :--- |
-| positive (ข้อความปกติ) | `promotion` | โปรโมชันสินค้า สิทธิพิเศษ พอยท์ |
-| | `carrier_vas` | บริการเสริมของค่ายมือถือ (ดูดวง ริงโทน กด `*...#`) |
-| | `otp` | รหัส OTP / รหัสยืนยันตัวตน |
-| | `service_notice` | แจ้งเตือนบริการ สถานะพัสดุ ระบบโทรศัพท์ ประกาศภาครัฐ |
-| | `payment_alert` | แจ้งชำระเงิน เงินเข้า-ออก ธุรกรรมการเงิน |
-| negative (มิจฉาชีพ) | `invite` | ชวนเล่นเว็บพนัน แจกเครดิตฟรี รางวัลปลอม กู้เงินนอกระบบ งานออนไลน์ |
-| | `phishing_link` | ลิงก์ฟิชชิ่งที่ปลอมเป็นธนาคาร ขนส่ง หรือหน่วยงานรัฐ |
-| | `threat` | ข่มขู่หรือแจ้งเตือนเท็จ เช่น พัสดุถูกอายัด ตัดไฟ หมายเรียก |
-
-### ภาพรวมระบบ
-```
-ผู้ใช้กรอกข้อความ (เว็บ React)
-        │  JSON
-        ▼
-   FastAPI ──► Normalize ► Lookalikes ► Tokenize ► TF-IDF
-        │                                            ├► Model ชั้นที่ 1: group (positive / negative)
-        │                                            └► Model ชั้นที่ 2: sub_group (8 กลุ่มย่อย)
-        ▼
-แสดงผลบนหน้าเว็บ
-```
+1. หน้าเว็บ React ส่งข้อความเป็น JSON ไปที่ FastAPI
+2. ระบบปรับรูปข้อความ แทนข้อมูลที่มีรูปแบบตายตัวด้วยแท็ก ปรับตัวอักษรหน้าตาคล้ายกัน ตัดคำ และแปลงเป็น TF-IDF
+3. โมเดลชั้นแรกทำนาย `group` จากนั้นเลือกโมเดลย่อยของกลุ่มนั้นเพื่อทำนาย `sub_group`
+4. API ส่งผลทำนาย ค่าความมั่นใจ และคำแนะนำกลับไปแสดงบนเว็บ
 
 ---
 
-## 2. How to use / How to run / How to customize
+## 2. วิธีใช้ รัน และปรับโปรเจกต์
 
-### How to use
-**1) ผ่านหน้าเว็บ (ผู้ใช้ทั่วไป):** เข้า [message-scam-detector.vercel.app](https://message-scam-detector.vercel.app)
-- หน้า **ตรวจข้อความ** (`/`): วางข้อความ SMS แล้วกดตรวจ ระบบจะแสดงว่าเป็นข้อความปกติหรือมิจฉาชีพ, กลุ่มย่อย, ค่าความมั่นใจ และคำแนะนำ
-- หน้า **ส่งข้อความเข้าระบบ** (`/report`): ส่งข้อความใหม่พร้อมระบุกลุ่ม ระบบเก็บไว้ใน Firebase เพื่อรอทีมคัดกรองก่อนนำไปเทรนเพิ่ม
+### วิธีใช้
 
-> เซิร์ฟเวอร์ฟรีจะหลับเมื่อไม่มีคนใช้ 15 นาที ครั้งแรกอาจต้องรอ 1-2 นาทีให้ API ตื่น
+เข้า [เว็บตรวจ SMS](https://message-scam-detector.vercel.app) แล้วเลือกหน้าที่ต้องการ
 
-**2) ผ่าน API:** [projectscamdetec.onrender.com/docs](https://projectscamdetec.onrender.com/docs)
+- **ตรวจข้อความ (`/`)** วาง SMS แล้วกด **ตรวจข้อความ** เว็บจะแสดงกลุ่ม หมวดย่อย ค่าความมั่นใจ และคำแนะนำ
+- **ส่งข้อความเข้าระบบ (`/report`)** เลือกกลุ่มและหมวดย่อย ก่อนส่งให้ลบ OTP รหัสอ้างอิง เบอร์โทร และข้อมูลส่วนตัว ข้อความที่ส่งจะถูกเก็บตามที่กรอกใน Firestore ด้วยสถานะ `pending` เพื่อให้ทีมคัดกรอง
+
+ถ้าหน้าขึ้นว่ากำลังเชื่อมต่อ ให้รอ API บน Render เริ่มทำงานก่อนแล้วลองใหม่ ผล `positive` เป็นการประเมินจากข้อความ หากยังสงสัยให้ยืนยันผู้ส่งผ่านช่องทางทางการ
+
+### เรียก API
+
+ทดลองได้ที่ [Swagger UI](https://projectscamdetec.onrender.com/docs) หรือลองส่งข้อความตัวอย่างนี้
+
 ```bash
 curl -X POST https://projectscamdetec.onrender.com/predict \
   -H "Content-Type: application/json" \
-  -d '{"text": "รับเครดิตฟรี 300 สมัครวันนี้ ไลน์ @bet789"}'
-```
-```json
-{
-  "group": "negative", "group_th": "ข้อความมิจฉาชีพ", "group_confidence": 0.9991,
-  "sub_group": "invite", "sub_group_th": "ชักชวน (พนัน / เครดิตฟรี / กู้เงิน / งานออนไลน์)",
-  "sub_group_confidence": 0.753, "risk_level": "เสี่ยง",
-  "advice": "อย่ากดลิงก์หรือแอดไลน์ตามข้อความ และอย่าโอนเงินเพื่อรับรางวัลหรือเงินกู้"
-}
+  -d '{"text": "รับเครดิตฟรี 300 สมัครวันนี้"}'
 ```
 
-### How to run
-โครงสร้างไฟล์
-```
-ProjectScamDetec/
-├── main.ipynb          # NLP + ML: เตรียมข้อมูล → เทรน → วัดผล → export โมเดล
-├── sms_model.joblib    # โมเดลที่เทรนแล้ว (vectorizer + models) export จาก main.ipynb
-├── sms_pipeline.py     # ฟังก์ชันเตรียมข้อความ (normalize / lookalikes / tokenize) ที่ API ใช้
-├── data_set.csv        # ชุดข้อมูลรวมที่ใช้เทรน (1,323 ข้อความ)
-├── api/                # FastAPI: /predict, /report, /health (รายละเอียดใน api/README.md)
-├── web/                # หน้าเว็บ React + Vite (รายละเอียดใน web/README.md)
-├── row_data/           # ข้อมูลดิบที่สมาชิกแต่ละคนรวบรวม (แยกโฟลเดอร์ตามชื่อ)
-└── QUICKSTART.md       # คู่มือสั้นสำหรับสมาชิกในทีม
-```
+| Endpoint | หน้าที่ |
+| --- | --- |
+| `GET /health` | เช็กว่า API พร้อมตอบคำขอ |
+| `POST /predict` | รับ `text` และคืนกลุ่ม หมวดย่อย ค่าความมั่นใจ และคำแนะนำ |
+| `POST /report` | รับ `text`, `group` และ `sub_group` เพื่อส่งตัวอย่างให้ทีม |
 
-**โมเดล (Notebook)**: ใช้ Python 3.11 ขึ้นไป
+ค่าความมั่นใจของกลุ่มหลักและหมวดย่อยอยู่ในช่วง 0–1 หน้าเว็บแสดงเป็นเปอร์เซ็นต์ ดูรูปแบบข้อมูลและการตั้งค่า Firestore ใน [คู่มือ API](api/README.md)
+
+### วิธีรันในเครื่อง
+
+| ไฟล์หรือโฟลเดอร์ | หน้าที่ |
+| --- | --- |
+| [`main.ipynb`](main.ipynb) | เตรียมข้อมูล เทรน ประเมินผล และ export โมเดล |
+| `sms_model.joblib` | Vectorizer และโมเดลที่ API โหลดตอนเริ่มทำงาน |
+| [`sms_pipeline.py`](sms_pipeline.py) | ฟังก์ชันเตรียมข้อความและเรียกโมเดลสำหรับ API |
+| [`data_set.csv`](data_set.csv) | ชุดข้อมูลที่ Notebook ใช้เทรนและประเมินผล |
+| [`api/`](api/) | FastAPI สำหรับตรวจและรับตัวอย่าง SMS |
+| [`web/`](web/) | หน้าเว็บ React + Vite |
+| [`row_data/`](row_data/) | ไฟล์ข้อมูลต้นทางของสมาชิกและชุดสรุป V2 |
+| [`QUICKSTART.md`](QUICKSTART.md) | ลิงก์และหน้าที่สำหรับสมาชิกในทีม |
+
+#### Notebook
+
+ใช้ Python 3.11 ขึ้นไป รันจากโฟลเดอร์หลักของรีโป
+
 ```bash
-pip install pandas numpy scipy pythainlp scikit-learn matplotlib joblib jupyter
-jupyter notebook main.ipynb     # แล้วกด Run All
+python -m pip install -r api/requirements.txt pandas matplotlib jupyter
+jupyter notebook main.ipynb
 ```
-Notebook จะทำงานตามลำดับ: โหลด `data_set.csv` → normalize → ตัดคำ → แบ่ง Train/Test → TF-IDF → เทรน → วัดผลและจูน → บันทึก `sms_model.joblib` และ `sms_pipeline.py`
 
-**API (FastAPI)**: ใช้ Python 3.11 ขึ้นไป
+กด **Run All** เพื่อโหลด `data_set.csv` เตรียมข้อความ แบ่ง Train/Test เทรน ประเมินผล และ export `sms_model.joblib` กับ `sms_pipeline.py`
+
+#### API
+
+ใช้ Python 3.11 ขึ้นไป รันจากโฟลเดอร์หลักของรีโป
+
 ```bash
-py -3.11 -m pip install -r api/requirements.txt
-py -3.11 -m uvicorn api.main:app --reload     # → http://127.0.0.1:8000/docs
+python -m pip install -r api/requirements.txt
+python -m uvicorn api.main:app --reload
 ```
-`/predict` ใช้ได้ทันที ส่วน `/report` ต้องมี key ของ Firebase (ถ้าไม่มีจะตอบ 503)
 
-**หน้าเว็บ (React)**: ใช้ Node.js 20.19 ขึ้นไป
+เปิด [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) เพื่อทดลองเรียก API เมื่อเซิร์ฟเวอร์เริ่มสำเร็จ `/predict` ใช้โมเดลที่มากับรีโปได้ ส่วน `/report` ต้องเชื่อม Firestore สำเร็จ รายละเอียดอยู่ใน [คู่มือ API](api/README.md)
+
+#### หน้าเว็บ
+
+แนะนำ Node.js 22 LTS เวอร์ชัน 22.12 ขึ้นไป สร้างไฟล์ `.env.local` ในโฟลเดอร์ `web/` แล้วใส่บรรทัดนี้
+
+```dotenv
+VITE_API_URL=https://projectscamdetec.onrender.com
+```
+
+ถ้ารัน API ในเครื่อง ให้ตั้งเป็น `http://127.0.0.1:8000` จากนั้นรัน
+
 ```bash
 cd web
-echo VITE_API_URL=https://projectscamdetec.onrender.com > .env.local
-npm install
-npm run dev     # → http://localhost:5173
+npm ci
+npm run dev
 ```
 
-**Deploy:** push เข้า `main` แล้ว GitHub Actions จะ deploy ให้อัตโนมัติ: `web/` ไป Vercel และ `api/`, `sms_model.joblib`, `sms_pipeline.py` ไป Render
+เปิด URL ที่ Vite แสดง ปกติคือ [http://localhost:5173](http://localhost:5173) ดูรายละเอียดใน [คู่มือเว็บ](web/README.md)
 
-### ขั้นตอน Normalization ภายในระบบ
-| ขั้นตอน | ทำอะไร | ตัวอย่าง |
-| :--- | :--- | :--- |
-| **`<tag>`** | หาข้อมูลที่มีรูปแบบตายตัวแล้วแปลงเป็น tag (`<URL>`, `<AMOUNT>`, `<OTP>`, `<PHONE>`, `<LINE_ID>`, `<USSD>`, `<DATE>`) | `OTP ของคุณคือ 674820` → `OTP ของคุณคือ <OTP>` |
-| **Lookalikes** | แปลงตัวอักษรที่ใช้แทนตัวไทยเพื่อหลบการตรวจ กลับเป็นตัวไทยตามที่ map ไว้ | `โoนไว` → `โอนไว` |
-| **Tokenization** | ตัดคำไทยที่พิมพ์ติดกันด้วย `word_tokenize` ของ PyThaiNLP โดยไม่ตัด tag | `สมัครใหม่รับฟรี` → `['สมัคร', 'ใหม่', 'รับ', 'ฟรี']` |
-| **Stopword** | ตัดคำที่ไม่มีความสำคัญออก | `['สมัคร', 'ใหม่', 'รับ', 'ฟรี']` → `['สมัคร', 'ฟรี']` |
+### การ Deploy
 
-### How to customize
-| ต้องการ | แก้ที่ |
-| :--- | :--- |
-| เพิ่มข้อมูล | เพิ่มแถวใน `data_set.csv` (คอลัมน์ `id, sentence_raw, group, sub_group, source`) หรือเพิ่มโฟลเดอร์ของตัวเองใน `row_data/` แล้วส่ง Pull Request (ห้ามแก้หรือลบข้อมูลของคนอื่น) |
-| เพิ่ม/เปลี่ยน tag | regex ในเซลล์ "Normalize data" (`URL_RE`, `AMOUNT_RE`, …) และฟังก์ชัน `normalize_sms` |
-| เพิ่มคู่ตัวอักษรที่ใช้หลบการตรวจ | dict `LOOKALIKES` ในเซลล์ Tokenization |
-| ปรับการแปลงข้อความเป็น vector | `BASE_CFG` → `ngram_range`, `min_df`, `max_df`, `max_features`, `char_ngram` |
-| ปรับความเข้มของโมเดล | `C_group`, `C_sub_pos`, `C_sub_neg` ใน `BASE_CFG` หรือขยาย `C_GRID` ตอนจูน |
-| เพิ่ม sub_group ใหม่ | ใส่ label ใหม่ใน `data_set.csv` ได้เลย โมเดลชั้นที่ 2 จะเรียนรู้กลุ่มใหม่เอง (ควรมีอย่างน้อยประมาณ 30 ข้อความ) |
-| เปลี่ยนสัดส่วน Train/Test | `split_data(df, test_size=0.2)` |
-| เปลี่ยนชื่อไทย / คำแนะนำของแต่ละกลุ่ม | `api/labels.py` และ `web/src/labels.js` (ต้องแก้ให้ตรงกันทั้ง 2 ไฟล์) |
-| ปรับหน้าตาเว็บ | `web/src/index.css`, `web/src/pages/`, `web/src/components/` |
-| ใช้โมเดลใหม่ใน API | รัน `main.ipynb` จนจบเพื่อ export `sms_model.joblib` + `sms_pipeline.py` ใหม่ แล้ว push |
+| ไฟล์ที่เปลี่ยนบน `main` | ปลายทาง |
+| --- | --- |
+| `web/**` หรือ workflow เว็บ | Vercel ผ่าน [workflow เว็บ](.github/workflows/deploy-web.yml) |
+| `api/**`, `sms_model.joblib`, `sms_pipeline.py` หรือ workflow API | Render ผ่าน [workflow API](.github/workflows/deploy-api.yml) |
+
+การแก้ `README.md` ที่รากรีโปอย่างเดียวอยู่นอกเงื่อนไข deploy อัตโนมัติ
+
+### การเตรียมข้อความ
+
+| ขั้นตอน | หน้าที่ |
+| --- | --- |
+| Normalize | แทนข้อมูลที่มีรูปแบบตายตัวด้วยแท็ก เช่น `<URL>`, `<OTP>`, `<AMOUNT>` หรือ `<PHONE>` |
+| Lookalikes | พิจารณาแปลงตัวอักษรหน้าตาคล้ายกันให้เป็นตัวไทย เช่น `โoนไว` → `โอนไว` |
+| Tokenization | ใช้ PyThaiNLP ตัดคำให้พร้อมแปลงเป็น TF-IDF |
+
+Notebook สร้าง `tokens_nostop` ไว้สำรวจ ส่วนการเทรน ประเมินผล และเรียกโมเดลผ่าน API ใช้ `tokens` ที่ยังเก็บ stopwords ไว้
+
+### ปรับตรงไหน
+
+| งาน | จุดที่แก้ |
+| --- | --- |
+| เพิ่มข้อมูลต้นทาง | เพิ่มในโฟลเดอร์ของตัวเองตาม [วิธีส่งข้อมูล](row_data/readme.md) แล้วเปิด Pull Request |
+| แก้ชุดข้อมูลสำหรับเทรน | `data_set.csv` ใช้คอลัมน์ `id`, `sentence_raw`, `group`, `sub_group`, `source` |
+| แก้การแทนข้อความหรือตัวสะกด | เซลล์ Normalize และ Tokenization ของ `main.ipynb` |
+| ปรับ TF-IDF หรือพารามิเตอร์โมเดล | `BASE_CFG` และ `C_GRID` ใน Notebook |
+| เพิ่มหรือเปลี่ยนหมวดย่อย | ปรับ label ในชุดข้อมูล เทรนและประเมินใหม่ แล้วซิงก์ `api/labels.py` กับ `web/src/labels.js` |
+| แก้หน้าตาเว็บ | `web/src/index.css`, `web/src/pages/`, `web/src/components/` |
+| เปลี่ยนโมเดลที่ API ใช้ | รัน Notebook เพื่อ export `sms_model.joblib` และ `sms_pipeline.py` ใหม่ |
 
 ---
 
 ## 3. Data + Results
 
-### Data
-**ทั้งหมด 1,323 ข้อความ**
-- **ข้อความปกติ (Positive) 861 ข้อความ:** promotion 532, carrier_vas 151, otp 70, service_notice 63, payment_alert 45
-- **มิจฉาชีพ (Negative) 462 ข้อความ:** invite 293, phishing_link 129, threat 40
+### ชุดข้อมูล
 
-| แหล่งข้อมูล | จำนวน |
-| :--- | ---: |
-| BeeBuzz dataset (GitHub, มจธ.) | 694 |
-| SMS จริงจากมือถือสมาชิก | 607 |
-| ข่าวและประกาศเตือนภัย (ตำรวจ, ธนาคาร, Thai PBS Verify ฯลฯ) | 22 |
+| ไฟล์ | จำนวนแถว | ใช้ทำอะไร |
+| --- | ---: | --- |
+| [data_set.csv](data_set.csv) | 1,323 | ชุดที่ Notebook อ่านเพื่อเทรนและประเมินผล ใช้ 8 หมวดย่อย |
+| [Summary_Dataset.csv](row_data/Data%20Summary/Summary_Dataset.csv) | 1,261 | ชุดสรุป V2 ใช้ 11 หมวดย่อย ดูเพิ่มเติมที่ [Data Summary](row_data/Data%20Summary/README.md) |
 
-**การเตรียมข้อมูล:** รวมข้อมูลจาก `row_data/` → ปรับ label ให้เป็นมาตรฐานเดียวกัน → Normalization → แบ่ง Train 80% (1,058 ข้อความ) / Test 20% (265 ข้อความ) แบบ stratify ตาม `sub_group`
+ใน `data_set.csv` มีข้อความปกติ **861** ข้อความ และข้อความมิจฉาชีพ **462** ข้อความ
 
-### Model
-- **Feature:** TF-IDF ระดับคำ (1-2 gram) รวมกับ TF-IDF ระดับตัวอักษร (2-4 gram) ซึ่งช่วยกับคำที่สะกดเลี่ยงหรือพิมพ์ผิด
-- **ชั้นที่ 1 (`group`):** `LinearSVC` + `CalibratedClassifierCV`, `class_weight="balanced"`
-- **ชั้นที่ 2 (`sub_group`):** `LogisticRegression` 2 ตัว แยกกันระหว่างกลุ่ม positive (5 กลุ่มย่อย) และ negative (3 กลุ่มย่อย)
-- **การจูน:** Cross-validation แบบ 5-Fold บน Train Set ค่าที่เลือกคือ `word(1,2) + char(2,4)`, `C_group=3.0`, `C_sub_pos=10.0`, `C_sub_neg=0.3`
+| กลุ่ม | จำนวนต่อหมวดย่อย |
+| --- | --- |
+| `positive` | `promotion` 532, `carrier_vas` 151, `otp` 70, `service_notice` 63, `payment_alert` 45 |
+| `negative` | `invite` 293, `phishing_link` 129, `threat` 40 |
 
-### Results
-**Cross-validation 5-Fold × 3 รอบ เทียบก่อน/หลังจูน**
+| แหล่งข้อมูลในชุดเทรน | จำนวน |
+| --- | ---: |
+| BeeBuzz dataset | 694 |
+| ข้อมูลจากสมาชิก (`tonkla_phone`, `ter_phone`, `nattawat_phone`, `soda_sms`) | 607 |
+| ข่าว ประกาศเตือนภัย และแหล่งอ้างอิงอื่น | 22 |
+| **รวม** | **1,323** |
 
-| Metric | Baseline | Tuned | Diff |
-| :--- | ---: | ---: | ---: |
-| group F1 (macro) | 0.9532 | **0.9572** | +0.0040 |
-| Scam recall (สัดส่วนข้อความมิจฉาชีพที่จับได้) | 0.9221 | **0.9286** | +0.0065 |
-| sub_group F1 (positive) | 0.8879 | **0.8890** | +0.0011 |
-| sub_group F1 (negative) | 0.7052 | **0.7390** | +0.0338 |
-| sub_group F1 (รวม) | 0.7804 | **0.7975** | +0.0171 |
-| เวลาเทรนต่อรอบ (วินาที) | 0.25 | 0.62 | +0.38 |
+Notebook แบ่ง Train 1,058 ข้อความ และ Test 265 ข้อความ โดยรักษาสัดส่วนตาม `sub_group`
 
-**Test Set (265 ข้อความ) ของโมเดล baseline**
+### โมเดล
 
-| ระดับ | Accuracy | F1-macro |
-| :--- | ---: | ---: |
-| group (positive / negative) | **95.85%** | 95.41% |
-| sub_group (8 กลุ่มย่อย) | 84.53% | 76.92% |
+- **Baseline** ใช้ TF-IDF ระดับคำ 1–2 gram ส่วนโมเดลหลังจูนเพิ่ม TF-IDF ระดับตัวอักษร 2–4 gram
+- **ชั้นแรก** ใช้ `LinearSVC` ร่วมกับ `CalibratedClassifierCV` เพื่อเลือก `positive` หรือ `negative`
+- **ชั้นที่สอง** ใช้ `LogisticRegression` แยกกันสองตัวสำหรับเลือก 5 หมวดย่อยฝั่ง `positive` และ 3 หมวดย่อยฝั่ง `negative`
+- **การจูน** เลือกค่าด้วย cross-validation บน Train Set แล้วเทรนด้วยค่าที่เลือกบน Train Set ก่อน export ค่าที่เลือกคือ `C_group=3.0`, `C_sub_pos=10.0`, `C_sub_neg=0.3`
 
-| sub_group | Precision | Recall | F1 |
-| :--- | ---: | ---: | ---: |
-| otp | 1.00 | 1.00 | 1.00 |
-| carrier_vas | 0.94 | 1.00 | 0.97 |
-| promotion | 0.92 | 0.96 | 0.94 |
-| payment_alert | 0.80 | 0.89 | 0.84 |
-| invite | 0.80 | 0.83 | 0.82 |
-| threat | 0.60 | 0.75 | 0.67 |
-| service_notice | 0.63 | 0.38 | 0.48 |
-| phishing_link | 0.53 | 0.38 | 0.44 |
+### ผลประเมิน
 
-**วิเคราะห์ผล**
-- โมเดลแยกข้อความปกติกับข้อความมิจฉาชีพได้แม่นประมาณ 96% และผลแต่ละ fold ค่อนข้างนิ่ง (std ของ group F1 ≈ 0.014)
-- ข้อความมิจฉาชีพหลุดเป็น positive 7 จาก 93 ข้อความ ส่วนใหญ่เขียนเลียนแบบโปรโมชันของค่ายมือถือ (เช่น ดูดวง, เพิ่มเงินค่าโทร)
-- คู่ที่สับสนมากที่สุดคือ `phishing_link` ↔ `invite` (18 ข้อความ) เพราะทั้งสองกลุ่มมักแนบลิงก์เหมือนกัน
-- การเพิ่ม char n-gram ทำให้ sub_group ฝั่ง negative ดีขึ้นชัดที่สุด (+3.4%)
+**Cross-validation แบบ 5-fold จำนวน 3 รอบ บนชุดข้อมูล 1,323 แถว**
 
-### Limitation
-- ชุดข้อมูลยังมีจำนวนน้อย อาจมีบางกรณีที่โมเดลยังไม่ครอบคลุม
-- ตรวจเฉพาะตัวข้อความ ไม่ได้ตรวจลิงก์ปลายทาง
-- มิจฉาชีพเปลี่ยนรูปแบบอยู่ตลอด จึงต้องเทรนโมเดลใหม่เป็นระยะ
+| ตัวชี้วัด | Baseline | หลังจูน |
+| --- | ---: | ---: |
+| Group macro F1 | 0.9532 | 0.9572 |
+| Recall ของกลุ่มมิจฉาชีพ | 0.9221 | 0.9286 |
+| F1 หมวดย่อยฝั่งปกติ | 0.8879 | 0.8890 |
+| F1 หมวดย่อยฝั่งมิจฉาชีพ | 0.7052 | 0.7390 |
+| F1 หมวดย่อยรวม | 0.7804 | 0.7975 |
 
-### Reference
-- PyThaiNLP · scikit-learn · FastAPI · React
-- BeeBuzz: Fraud-SMS-Detection-Application โปรเจกต์จบ มจธ. ([github.com/Zoleir](https://github.com/Zoleir)) ใช้เพื่อการศึกษา
-- ThaiScamBench (สจล.) · Thai PBS Verify
+**ผลของ baseline บน Test Set ที่กันไว้ 265 ข้อความ**
+
+| ระดับ | Accuracy | Macro F1 |
+| --- | ---: | ---: |
+| กลุ่มหลัก `positive` / `negative` | 95.85% | 95.41% |
+| หมวดย่อย 8 หมวด | 84.53% | 76.92% |
+
+| หมวดย่อย | Precision | Recall | F1 |
+| --- | ---: | ---: | ---: |
+| `otp` | 1.00 | 1.00 | 1.00 |
+| `carrier_vas` | 0.94 | 1.00 | 0.97 |
+| `promotion` | 0.92 | 0.96 | 0.94 |
+| `payment_alert` | 0.80 | 0.89 | 0.84 |
+| `invite` | 0.80 | 0.83 | 0.82 |
+| `threat` | 0.60 | 0.75 | 0.67 |
+| `service_notice` | 0.63 | 0.38 | 0.48 |
+| `phishing_link` | 0.53 | 0.38 | 0.44 |
+
+ใน Test Set ของ baseline โมเดลจัดข้อความมิจฉาชีพเป็น `positive` **7 จาก 93 ข้อความ** ส่วนคู่หมวดย่อยที่สับสนมากที่สุดคือ `phishing_link` กับ `invite` รวม **18 ข้อความ**
+
+### ข้อจำกัด
+
+- ผลขึ้นกับรูปแบบข้อความที่มีในชุดข้อมูล ข้อความรูปแบบใหม่อาจถูกคัดแยกผิด
+- ระบบประเมินจากข้อความที่กรอก โดยไม่ได้ยืนยันตัวตนผู้ส่งหรือเปิดตรวจเว็บไซต์ปลายทาง
+- ค่าความมั่นใจเป็นส่วนหนึ่งของผลทำนาย ควรตรวจสอบผ่านช่องทางทางการเมื่อข้อความเกี่ยวกับเงินหรือข้อมูลส่วนตัว
+
+### แหล่งอ้างอิง
+
+- PyThaiNLP, scikit-learn, FastAPI และ React
+- [BeeBuzz: Fraud-SMS-Detection-Application](https://github.com/Zoleir/Fraud-SMS-Detection-Application) โปรเจกต์จบ มจธ. ใช้ประกอบการศึกษา
+- ThaiScamBench (สจล.) และ Thai PBS Verify
 
 ---
 
-## 4. Team members + Role
+## 4. สมาชิกและหน้าที่
 
 | ชื่อ - นามสกุล | รหัสนักศึกษา | บทบาท |
-| :--- | :--- | :--- |
+| --- | --- | --- |
 | นางสาวรุจิรัตน์ แสงชัย | 6752300739 | รวบรวมข้อมูล, Normalize data |
-| นายศนุชา สอนเดช | 6752300542 | รวบรวมข้อมูล, สร้าง Model AI |
-| นายก้องภพ สุขทรัพย์ | 6752300534 | รวบรวมข้อมูล, สร้าง Model AI |
-| นายกษิดิ์เดช คู่คิด | 6752300712 | รวบรวมข้อมูล, สร้าง Model AI |
-| นายอาณัติ หลีเกี๊ยะ | 6752300666 | รวบรวมข้อมูล, FastAPI, Use page |
-| นางสาวธนัชพร ช่วยนาค | 6752300861 | รวบรวมข้อมูล, ออกแบบเว็บทั้ง 2 หน้า, Landing page, Use page |
-| นายนัธทวัฒน์ อุ้มญาติ | 6752300364 | รวบรวมข้อมูล, Landing page |
+| นายศนุชา สอนเดช | 6752300542 | รวบรวมข้อมูล, สร้างโมเดล |
+| นายก้องภพ สุขทรัพย์ | 6752300534 | รวบรวมข้อมูล, สร้างโมเดล |
+| นายกษิดิ์เดช คู่คิด | 6752300712 | รวบรวมข้อมูล, สร้างโมเดล |
+| นายอาณัติ หลีเกี๊ยะ | 6752300666 | รวบรวมข้อมูล, FastAPI, หน้าใช้งาน |
+| นางสาวธนัชพร ช่วยนาค | 6752300861 | รวบรวมข้อมูล, ออกแบบเว็บ, Landing Page, หน้าใช้งาน |
+| นายนัธทวัฒน์ อุ้มญาติ | 6752300364 | รวบรวมข้อมูล, Landing Page |
