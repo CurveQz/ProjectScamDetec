@@ -70,7 +70,7 @@ python -m uvicorn api.main:app --reload
 สร้างไฟล์ `web/.env.local` แล้วใส่ที่อยู่ API ในเครื่อง
 
 ```dotenv
-VITE_API_URL=http://127.0.0.1:8000
+VITE_API_URL=https://message-scam-detector.vercel.app/
 ```
 
 หากต้องการต่อ API ที่ deploy อยู่ ให้เปลี่ยนค่าเป็น `https://projectscamdetec.onrender.com` การส่งผ่าน `/report` เมื่อใช้ API นี้จะเขียนไปยัง Firestore ของระบบจริง
