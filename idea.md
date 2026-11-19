@@ -59,7 +59,7 @@
 | รวบรวมข้อมูลจากหลาย ๆ แหล่ง | ทุกคน |
 | normalize data | ปุ้ย |
 | สร้าง Model AI | โซดา ก้อง เตอร์ |
-| ทำ Fast API | ต้นกล้า |
+| ทำ Fast API , database, deployn workflow , Hosting  | ต้นกล้า |
 | ออกแบบเว็ปทั้ง 2 เว้ป | ไผ่ |
 | Landing page | ไผ่ นัธ |
 | Use page | ไผ่ ต้นกล้า |
